@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "dfjmd363"
+		},
+		"ASDB_password": {
+			"value": ""
+		},
+		"LS_BLOB_Input_connectionString": {
+			"value": ""
+		},
+		"LS_BLOB_Ouput_connectionString": {
+			"value": ""
+		},
+		"LS_BLOB_Owner_data_1_connectionString": {
+			"value": ""
+		},
+		"ASDB_properties_typeProperties_server": {
+			"value": "sql-ds-jmd363.database.windows.net"
+		},
+		"ASDB_properties_typeProperties_database": {
+			"value": "DB-Training"
+		},
+		"ASDB_properties_typeProperties_userName": {
+			"value": "jmd363"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}

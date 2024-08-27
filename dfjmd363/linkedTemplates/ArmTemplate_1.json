@@ -232,7 +232,14 @@
 					{
 						"name": "Copy Consolidated Order Data",
 						"type": "Copy",
-						"dependsOn": [],
+						"dependsOn": [
+							{
+								"activity": "Copy Order Data",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
 						"policy": {
 							"timeout": "0.12:00:00",
 							"retry": 0,
@@ -1030,6 +1037,13 @@
 							"type": "PipelineReference"
 						},
 						"parameters": {}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "PL_ConcateFilesOnName",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
 					}
 				],
 				"type": "ScheduleTrigger",
@@ -1044,7 +1058,8 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/PL_DB')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_JoinedTable_Cusomters_Orders')]"
+				"[concat(variables('factoryId'), '/pipelines/PL_JoinedTable_Cusomters_Orders')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_ConcateFilesOnName')]"
 			]
 		}
 	]

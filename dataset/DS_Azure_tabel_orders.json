@@ -1,0 +1,17 @@
+{
+	"name": "DS_Azure_tabel_orders",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ASDB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "Raw",
+			"table": "Order"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

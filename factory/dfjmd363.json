@@ -1,0 +1,9 @@
+{
+	"name": "dfjmd363",
+	"location": "southindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "62fbb13a-198e-44a9-8b18-899b6fca15a6",
+		"tenantId": "2800c0a0-70e9-49be-8733-faeaa6aced99"
+	}
+}

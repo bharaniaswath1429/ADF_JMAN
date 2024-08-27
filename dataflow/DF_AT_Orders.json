@@ -1,0 +1,112 @@
+{
+	"name": "DF_AT_Orders",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Azure_tabel_orders",
+						"type": "DatasetReference"
+					},
+					"name": "sourceAzureTableOrders"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Azure_table_customers",
+						"type": "DatasetReference"
+					},
+					"name": "sourceAzuretableCustomers"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable3",
+						"type": "DatasetReference"
+					},
+					"name": "output"
+				}
+			],
+			"transformations": [
+				{
+					"name": "joinOrdersCustomers"
+				},
+				{
+					"name": "CustomersOrdersSelected"
+				},
+				{
+					"name": "UnitPrice"
+				},
+				{
+					"name": "SellingPrice"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          OrderID as string,",
+				"          ProductID as string,",
+				"          ProductName as string,",
+				"          Quantity as integer,",
+				"          OrderTimestamp as timestamp,",
+				"          Price as double,",
+				"          CustomerID as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> sourceAzureTableOrders",
+				"source(output(",
+				"          CustomerID as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          Email as string,",
+				"          PhoneNumber as string,",
+				"          Address as string,",
+				"          City as string,",
+				"          State as string,",
+				"          ZipCode as string,",
+				"          Country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> sourceAzuretableCustomers",
+				"sourceAzureTableOrders, sourceAzuretableCustomers join(sourceAzureTableOrders@CustomerID == sourceAzuretableCustomers@CustomerID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinOrdersCustomers",
+				"SellingPrice select(mapColumn(",
+				"          OrderID,",
+				"          ProductID,",
+				"          ProductName,",
+				"          Quantity,",
+				"          CustomerID = sourceAzuretableCustomers@CustomerID,",
+				"          FirstName,",
+				"          LastName,",
+				"          Email,",
+				"          PhoneNumber,",
+				"          Address,",
+				"          {Unit Price},",
+				"          {Selling Price}",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> CustomersOrdersSelected",
+				"joinOrdersCustomers derive({Unit Price} = Price/Quantity) ~> UnitPrice",
+				"UnitPrice derive({Selling Price} = Quantity*{Unit Price}) ~> SellingPrice",
+				"CustomersOrdersSelected sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> output"
+			]
+		}
+	}
+}

@@ -1,0 +1,16 @@
+{
+	"name": "DS_AT_RAW_Superstore",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ASDB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "Raw",
+			"table": "Superstore"
+		}
+	}
+}

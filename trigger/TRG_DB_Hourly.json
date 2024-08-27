@@ -12,12 +12,6 @@
 			},
 			{
 				"pipelineReference": {
-					"referenceName": "PL_JoinedTable_Cusomters_Orders",
-					"type": "PipelineReference"
-				}
-			},
-			{
-				"pipelineReference": {
 					"referenceName": "PL_RAW_ConcateFilesOnName",
 					"type": "PipelineReference"
 				}

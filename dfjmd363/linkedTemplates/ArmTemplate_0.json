@@ -193,7 +193,7 @@
 				"type": "AzureSqlTable",
 				"schema": [],
 				"typeProperties": {
-					"schema": "STAGGING",
+					"schema": "Stagging",
 					"table": "Customers"
 				}
 			},
@@ -214,7 +214,7 @@
 				"type": "AzureSqlTable",
 				"schema": [],
 				"typeProperties": {
-					"schema": "STAGGING",
+					"schema": "Stagging",
 					"table": "Orders"
 				}
 			},
@@ -393,6 +393,27 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/LS_BLOB_ASSESSMENT_Input')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_AT_PREP_Joined')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ASDB",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "Prep",
+					"table": "CustomerJoinedOrders"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ASDB')]"
 			]
 		},
 		{
@@ -826,6 +847,98 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/DF_PREP')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "CustomersInput"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "OrdersInput"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_PREP_Joined",
+								"type": "DatasetReference"
+							},
+							"name": "PrepData"
+						}
+					],
+					"transformations": [
+						{
+							"name": "joinCustomerOrder"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerID as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          PhoneNumber as string,",
+						"          Address as string,",
+						"          City as string,",
+						"          State as string,",
+						"          ZipCode as string,",
+						"          Country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> CustomersInput",
+						"source(output(",
+						"          OrderID as string,",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Quantity as integer,",
+						"          OrderTimestamp as timestamp,",
+						"          Price as double,",
+						"          CustomerID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> OrdersInput",
+						"CustomersInput, OrdersInput join(CustomersInput@CustomerID == OrdersInput@CustomerID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinCustomerOrder",
+						"joinCustomerOrder sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> PrepData"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_AT_STAGGING_Customers')]",
+				"[concat(variables('factoryId'), '/datasets/DS_AT_STAGGING_Orders')]",
+				"[concat(variables('factoryId'), '/datasets/DS_AT_PREP_Joined')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/PL_STAGGING_CleaningData')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -853,7 +966,8 @@
 									"consolidatedOrders": {},
 									"STAGGINGcustomer": {},
 									"STAGGINGorders": {}
-								}
+								},
+								"linkedServiceParameters": {}
 							},
 							"staging": {},
 							"compute": {
@@ -874,41 +988,50 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/TRG_DB_Hourly')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
+			"name": "[concat(parameters('factoryName'), '/PL_PREP_Joined')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"annotations": [],
-				"runtimeState": "Started",
-				"pipelines": [
+				"activities": [
 					{
-						"pipelineReference": {
-							"referenceName": "PL_RAW_ConcateFilesOnName",
-							"type": "PipelineReference"
+						"name": "PrepData",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
 						},
-						"parameters": {}
-					},
-					{
-						"pipelineReference": {
-							"referenceName": "PL_STAGGING_CleaningData",
-							"type": "PipelineReference"
-						},
-						"parameters": {}
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_PREP",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"CustomersInput": {},
+									"OrdersInput": {},
+									"PrepData": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
 					}
 				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Minute",
-						"interval": 60,
-						"startTime": "2024-08-26T12:34:00",
-						"timeZone": "India Standard Time"
-					}
-				}
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/PL_RAW_ConcateFilesOnName')]",
-				"[concat(variables('factoryId'), '/pipelines/PL_STAGGING_CleaningData')]"
+				"[concat(variables('factoryId'), '/dataflows/DF_PREP')]"
 			]
 		}
 	]

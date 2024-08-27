@@ -1,5 +1,5 @@
 {
-	"name": "DS_AT_STAGGING_Orders",
+	"name": "DS_AT_PREP_Joined",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ASDB",
@@ -9,8 +9,8 @@
 		"type": "AzureSqlTable",
 		"schema": [],
 		"typeProperties": {
-			"schema": "Stagging",
-			"table": "Orders"
+			"schema": "Prep",
+			"table": "CustomerJoinedOrders"
 		}
 	}
 }

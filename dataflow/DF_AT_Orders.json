@@ -5,26 +5,14 @@
 		"typeProperties": {
 			"sources": [
 				{
-					"dataset": {
-						"referenceName": "DS_Azure_tabel_orders",
-						"type": "DatasetReference"
-					},
 					"name": "sourceAzureTableOrders"
 				},
 				{
-					"dataset": {
-						"referenceName": "DS_Azure_table_customers",
-						"type": "DatasetReference"
-					},
 					"name": "sourceAzuretableCustomers"
 				}
 			],
 			"sinks": [
 				{
-					"dataset": {
-						"referenceName": "AzureSqlTable3",
-						"type": "DatasetReference"
-					},
 					"name": "output"
 				}
 			],
@@ -53,9 +41,7 @@
 				"          CustomerID as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> sourceAzureTableOrders",
+				"     validateSchema: false) ~> sourceAzureTableOrders",
 				"source(output(",
 				"          CustomerID as string,",
 				"          FirstName as string,",
@@ -69,9 +55,7 @@
 				"          Country as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> sourceAzuretableCustomers",
+				"     validateSchema: false) ~> sourceAzuretableCustomers",
 				"sourceAzureTableOrders, sourceAzuretableCustomers join(sourceAzureTableOrders@CustomerID == sourceAzuretableCustomers@CustomerID,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
@@ -97,15 +81,9 @@
 				"UnitPrice derive({Selling Price} = Quantity*{Unit Price}) ~> SellingPrice",
 				"CustomersOrdersSelected sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     recreate:true,",
-				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> output"
+				"     format: 'table') ~> output"
 			]
 		}
 	}

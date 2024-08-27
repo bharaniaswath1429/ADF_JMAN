@@ -1,5 +1,5 @@
 {
-	"name": "PL_ConcateFilesOnName",
+	"name": "PL_RAW_ConcateFilesOnName",
 	"properties": {
 		"activities": [
 			{

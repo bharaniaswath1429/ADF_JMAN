@@ -1,0 +1,135 @@
+{
+	"name": "DF_STAGGING",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_AT_RAW_Customers",
+						"type": "DatasetReference"
+					},
+					"name": "consolidatedCustomers"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_AT_RAW_Orders",
+						"type": "DatasetReference"
+					},
+					"name": "consolidatedOrders"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_AT_STAGGING_Customers",
+						"type": "DatasetReference"
+					},
+					"name": "STAGGINGcustomer"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_AT_STAGGING_Orders",
+						"type": "DatasetReference"
+					},
+					"name": "STAGGINGorders"
+				}
+			],
+			"transformations": [
+				{
+					"name": "filterNull"
+				},
+				{
+					"name": "filterNullOrders"
+				},
+				{
+					"name": "Rank"
+				},
+				{
+					"name": "filterDupliates"
+				},
+				{
+					"name": "selectNecessaryCol"
+				},
+				{
+					"name": "RankOrders"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerID as string,",
+				"          FirstName as string,",
+				"          LastName as string,",
+				"          Email as string,",
+				"          PhoneNumber as string,",
+				"          Address as string,",
+				"          City as string,",
+				"          State as string,",
+				"          ZipCode as string,",
+				"          Country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> consolidatedCustomers",
+				"source(output(",
+				"          Prop_0 as string,",
+				"          Prop_1 as string,",
+				"          Prop_2 as string,",
+				"          Prop_3 as string,",
+				"          Prop_4 as string,",
+				"          Prop_5 as string,",
+				"          Prop_6 as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> consolidatedOrders",
+				"consolidatedCustomers filter(!isNull(Email) && !isNull(CustomerID) && !isNull(FirstName) && !isNull(LastName) && !isNull(PhoneNumber) && !isNull(Address) && !isNull(ZipCode)) ~> filterNull",
+				"consolidatedOrders filter(!isNull(OrderID) && !isNull(ProductID) && !isNull(ProductName) && !isNull(Quantity) && !isNull(OrderTimestamp) && !isNull(OrderTimestamp) && !isNull(6)) ~> filterNullOrders",
+				"filterNull window(over(CustomerID),",
+				"     asc(CustomerID, false),",
+				"     Rank = rowNumber()) ~> Rank",
+				"Rank filter(Rank==1) ~> filterDupliates",
+				"filterDupliates select(mapColumn(",
+				"          CustomerID,",
+				"          FirstName,",
+				"          LastName,",
+				"          Email,",
+				"          PhoneNumber,",
+				"          Address,",
+				"          City,",
+				"          State,",
+				"          ZipCode,",
+				"          Country",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectNecessaryCol",
+				"filterNullOrders window(over(OrderID),",
+				"     asc(OrderID, false),",
+				"     Rank = rowNumber()) ~> RankOrders",
+				"selectNecessaryCol sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> STAGGINGcustomer",
+				"RankOrders sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> STAGGINGorders"
+			]
+		}
+	}
+}

@@ -1,0 +1,16 @@
+{
+	"name": "DS_AT_STAGGING_Orders",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ASDB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "STAGGING",
+			"table": "Orders"
+		}
+	}
+}

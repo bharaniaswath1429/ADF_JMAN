@@ -8,6 +8,9 @@
 		"ASDB_password": {
 			"value": ""
 		},
+		"LS_BLOB_ASSESSMENT_Input_connectionString": {
+			"value": ""
+		},
 		"LS_BLOB_Input_connectionString": {
 			"value": ""
 		},

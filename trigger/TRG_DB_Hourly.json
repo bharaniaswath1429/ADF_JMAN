@@ -9,6 +9,12 @@
 					"referenceName": "PL_RAW_ConcateFilesOnName",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "PL_STAGGING_CleaningData",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",

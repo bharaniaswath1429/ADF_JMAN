@@ -1,0 +1,92 @@
+{
+	"name": "DF_PREP_Superstore",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_AT_STAGGING_Superstore",
+						"type": "DatasetReference"
+					},
+					"name": "staggingData"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_AT_PREP_Superstore_CostUnitPrice",
+						"type": "DatasetReference"
+					},
+					"name": "PrepUnitCostPrice"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectForCostprice"
+				},
+				{
+					"name": "TotalCostPrice"
+				},
+				{
+					"name": "UnitPrice"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          {Row ID} as integer,",
+				"          {Order ID} as string,",
+				"          {Order Date} as date,",
+				"          {Ship Date} as date,",
+				"          {Ship Mode} as string,",
+				"          {Customer ID} as string,",
+				"          {Customer Name} as string,",
+				"          Segment as string,",
+				"          Country as string,",
+				"          City as string,",
+				"          State as string,",
+				"          {Postal Code} as string,",
+				"          Region as string,",
+				"          {Product ID} as string,",
+				"          Category as string,",
+				"          {Sub-Category} as string,",
+				"          {Product Name} as string,",
+				"          Sales as double,",
+				"          Quantity as integer,",
+				"          Discount as double,",
+				"          Profit as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> staggingData",
+				"staggingData select(mapColumn(",
+				"          {Order ID},",
+				"          {Product ID},",
+				"          Category,",
+				"          {Sub-Category},",
+				"          {Product Name},",
+				"          Sales,",
+				"          Quantity,",
+				"          Discount,",
+				"          Profit",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectForCostprice",
+				"selectForCostprice derive({Total Cost Price} = Sales-Profit) ~> TotalCostPrice",
+				"TotalCostPrice derive({Unit Price} = {Total Cost Price}/Quantity) ~> UnitPrice",
+				"UnitPrice sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> PrepUnitCostPrice"
+			]
+		}
+	}
+}

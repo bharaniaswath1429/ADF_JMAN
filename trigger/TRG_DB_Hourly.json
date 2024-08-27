@@ -21,6 +21,12 @@
 					"referenceName": "PL_PREP_Joined",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "PL_PREP_Superstore",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",

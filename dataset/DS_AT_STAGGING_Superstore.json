@@ -1,0 +1,16 @@
+{
+	"name": "DS_AT_STAGGING_Superstore",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ASDB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "Stagging",
+			"table": "Superstore"
+		}
+	}
+}

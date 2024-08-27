@@ -1,0 +1,16 @@
+{
+	"name": "DS_AT_PREP_Superstore_CostUnitPrice",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ASDB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "Prep",
+			"table": "CostUnitPrice"
+		}
+	}
+}

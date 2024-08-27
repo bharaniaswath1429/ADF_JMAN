@@ -13,6 +13,655 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/PL_RAW_Superstore')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "RawData",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_RAW_Superstore",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_AT_RAW_Superstore",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_PREP')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "CustomersInput"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "OrdersInput"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_PREP_Joined",
+								"type": "DatasetReference"
+							},
+							"name": "PrepData"
+						}
+					],
+					"transformations": [
+						{
+							"name": "joinCustomerOrder"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerID as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          PhoneNumber as string,",
+						"          Address as string,",
+						"          City as string,",
+						"          State as string,",
+						"          ZipCode as string,",
+						"          Country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> CustomersInput",
+						"source(output(",
+						"          OrderID as string,",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Quantity as integer,",
+						"          OrderTimestamp as timestamp,",
+						"          Price as double,",
+						"          CustomerID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> OrdersInput",
+						"CustomersInput, OrdersInput join(CustomersInput@CustomerID == OrdersInput@CustomerID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinCustomerOrder",
+						"joinCustomerOrder sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> PrepData"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_PREP_Superstore')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Superstore",
+								"type": "DatasetReference"
+							},
+							"name": "staggingData"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_PREP_Superstore_CostUnitPrice",
+								"type": "DatasetReference"
+							},
+							"name": "PrepUnitCostPrice"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectForCostprice"
+						},
+						{
+							"name": "TotalCostPrice"
+						},
+						{
+							"name": "UnitPrice"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          {Row ID} as integer,",
+						"          {Order ID} as string,",
+						"          {Order Date} as date,",
+						"          {Ship Date} as date,",
+						"          {Ship Mode} as string,",
+						"          {Customer ID} as string,",
+						"          {Customer Name} as string,",
+						"          Segment as string,",
+						"          Country as string,",
+						"          City as string,",
+						"          State as string,",
+						"          {Postal Code} as string,",
+						"          Region as string,",
+						"          {Product ID} as string,",
+						"          Category as string,",
+						"          {Sub-Category} as string,",
+						"          {Product Name} as string,",
+						"          Sales as double,",
+						"          Quantity as integer,",
+						"          Discount as double,",
+						"          Profit as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> staggingData",
+						"staggingData select(mapColumn(",
+						"          {Order ID},",
+						"          {Product ID},",
+						"          Category,",
+						"          {Sub-Category},",
+						"          {Product Name},",
+						"          Sales,",
+						"          Quantity,",
+						"          Discount,",
+						"          Profit",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectForCostprice",
+						"selectForCostprice derive({Total Cost Price} = Sales-Profit) ~> TotalCostPrice",
+						"TotalCostPrice derive({Unit Price} = {Total Cost Price}/Quantity) ~> UnitPrice",
+						"UnitPrice sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> PrepUnitCostPrice"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_STAGGING')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_RAW_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "consolidatedCustomers"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_AT_RAW_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "consolidatedOrders"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Customers",
+								"type": "DatasetReference"
+							},
+							"name": "STAGGINGcustomer"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "STAGGINGorders"
+						}
+					],
+					"transformations": [
+						{
+							"name": "filterNull"
+						},
+						{
+							"name": "filterNullOrders"
+						},
+						{
+							"name": "Rank"
+						},
+						{
+							"name": "filterDupliates"
+						},
+						{
+							"name": "selectNecessaryCol"
+						},
+						{
+							"name": "RankOrders"
+						},
+						{
+							"name": "filterDuplicatesOrder"
+						},
+						{
+							"name": "selectNecessaryOrders"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerID as string,",
+						"          FirstName as string,",
+						"          LastName as string,",
+						"          Email as string,",
+						"          PhoneNumber as string,",
+						"          Address as string,",
+						"          City as string,",
+						"          State as string,",
+						"          ZipCode as string,",
+						"          Country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> consolidatedCustomers",
+						"source(output(",
+						"          OrderID as string,",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Quantity as string,",
+						"          OrderTimestamp as string,",
+						"          Price as string,",
+						"          CustomerID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> consolidatedOrders",
+						"consolidatedCustomers filter(!isNull(Email) && !isNull(CustomerID) && !isNull(FirstName) && !isNull(LastName) && !isNull(PhoneNumber) && !isNull(Address) && !isNull(ZipCode)) ~> filterNull",
+						"consolidatedOrders filter(!isNull(OrderID) && !isNull(ProductID) && !isNull(ProductName) && !isNull(Quantity) && !isNull(OrderTimestamp) && !isNull(OrderTimestamp) && !isNull(6)) ~> filterNullOrders",
+						"filterNull window(over(CustomerID),",
+						"     asc(CustomerID, false),",
+						"     Rank = rowNumber()) ~> Rank",
+						"Rank filter(Rank==1) ~> filterDupliates",
+						"filterDupliates select(mapColumn(",
+						"          CustomerID,",
+						"          FirstName,",
+						"          LastName,",
+						"          Email,",
+						"          PhoneNumber,",
+						"          Address,",
+						"          City,",
+						"          State,",
+						"          ZipCode,",
+						"          Country",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectNecessaryCol",
+						"filterNullOrders window(over(OrderID),",
+						"     asc(OrderID, false),",
+						"     Rank = rowNumber()) ~> RankOrders",
+						"RankOrders filter(Rank==1) ~> filterDuplicatesOrder",
+						"filterDuplicatesOrder select(mapColumn(",
+						"          OrderID,",
+						"          ProductID,",
+						"          ProductName,",
+						"          Quantity,",
+						"          OrderTimestamp,",
+						"          Price,",
+						"          CustomerID",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectNecessaryOrders",
+						"selectNecessaryCol sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> STAGGINGcustomer",
+						"selectNecessaryOrders sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> STAGGINGorders"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_STAGGING_Superstore')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_RAW_Superstore",
+								"type": "DatasetReference"
+							},
+							"name": "rawData"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_AT_STAGGING_Superstore",
+								"type": "DatasetReference"
+							},
+							"name": "StaggingData"
+						}
+					],
+					"transformations": [
+						{
+							"name": "filter1"
+						}
+					],
+					"scriptLines": [
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> rawData",
+						"rawData filter(contains(array(toString(columns())),!isNull(#item))) ~> filter1",
+						"filter1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> StaggingData"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_PREP_Joined')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "PrepData",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_PREP",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"CustomersInput": {},
+									"OrdersInput": {},
+									"PrepData": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_PREP')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_PREP_Superstore')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow Dimensions",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_PREP_Superstore",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"staggingData": {},
+									"PrepUnitCostPrice": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_PREP_Superstore')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_STAGGING_CleaningData')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Stagging",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_STAGGING",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"consolidatedCustomers": {},
+									"consolidatedOrders": {},
+									"STAGGINGcustomer": {},
+									"STAGGINGorders": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_STAGGING')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_STAGGING_Superstore')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "StaggingData",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_STAGGING_Superstore",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"rawData": {},
+									"StaggingData": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_STAGGING_Superstore')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/TRG_DB_Hourly')]",
 			"type": "Microsoft.DataFactory/factories/triggers",
 			"apiVersion": "2018-06-01",
@@ -40,6 +689,13 @@
 							"type": "PipelineReference"
 						},
 						"parameters": {}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "PL_PREP_Superstore",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
 					}
 				],
 				"type": "ScheduleTrigger",
@@ -52,7 +708,11 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/PL_STAGGING_CleaningData')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_PREP_Joined')]",
+				"[concat(variables('factoryId'), '/pipelines/PL_PREP_Superstore')]"
+			]
 		}
 	]
 }

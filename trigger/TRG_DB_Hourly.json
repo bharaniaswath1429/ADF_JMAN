@@ -15,6 +15,12 @@
 					"referenceName": "PL_JoinedTable_Cusomters_Orders",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "PL_ConcateFilesOnName",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",

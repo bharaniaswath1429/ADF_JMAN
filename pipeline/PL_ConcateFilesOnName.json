@@ -185,7 +185,7 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "Copy Order Data ",
+						"activity": "Copy Order Data",
 						"dependencyConditions": [
 							"Succeeded"
 						]
